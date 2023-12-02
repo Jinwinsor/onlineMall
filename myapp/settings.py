@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
+from django.contrib.messages import constants as messages
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -35,6 +36,7 @@ INSTALLED_APPS = [
     'accounts',
     'store',
     'carts',
+    'backends',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -136,3 +138,25 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+# Bring messages function.
+MESSAGE_TAGS = {
+    messages.ERROR: "danger",
+}
+
+# SMTP configuration (SMTP :Simple Mail Transfer Protocol)
+# ? : It is a protocol used for sending emails over the Internet
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_HOST_USER = 'jiheewinsor@gmail.com'
+EMAIL_HOST_PASSWORD = 'abhpathfdgugymlv'
+EMAIL_USE_TLS = True
+EMAIL_BACKEND = 'backends.email_backend.EmailBackend'
+
+
+# Solution of an error of : Forbidden (403)- CSRF verification failed. Request aborted.
+# ? When I was trying to send a verification email, I had an error.
+CSRF_COOKIE_SECURE = True  # Use secure cookies if your site is served over HTTPS
+CSRF_COOKIE_HTTPONLY = True  # Prevent JavaScript from accessing the CSRF cookie
+CSRF_USE_SESSIONS = False  # Use cookies, not sessions, for CSRF token
