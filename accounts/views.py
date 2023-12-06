@@ -13,7 +13,8 @@ from django.utils.encoding import force_bytes
 from django.contrib.auth.tokens import default_token_generator
 from .forms import RegistrationForm
 from django.core.mail import EmailMessage
-from django.http import HttpResponse
+from carts.views import Cart, CartItem, _cart_id
+import requests
 
 
 def register(request):
@@ -67,9 +68,65 @@ def login(request):
         user = auth.authenticate(email=email, password=password)
 
         if user is not None:
+            try:
+                cart = Cart.objects.get(cart_id=_cart_id(request))
+
+            # _cart_id from carts folder- views.py
+
+                # is_cart_item_exists = CartItem.objects.filter(
+                #     cart=cart).exists()
+
+                if CartItem.objects.filter(cart=cart).exists():
+                    cart_item = CartItem.objects.filter(cart=cart)
+
+                    # product_variation = []
+                    # for item in cart_item:
+                    #     variation = item.variation.all()
+                    #     product_variation.append(list(variation))
+                    product_variation = [list(item.variation.all())
+                                         for item in cart_item]
+                    cart_item = CartItem.objects.filter(user=user)
+
+                    ex_var_list = [list(item.variation.all())
+                                   for item in cart_item]
+                    id_list = [item.id for item in cart_item]
+                    # ex_var_list = []
+                    # id = []
+
+                    # for item in cart_item:
+                    #     existing_variation = item.variation.all()
+                    #     ex_var_list.append(list(existing_variation))
+                    #     id.append(item.id)
+
+                    for pr in product_variation:
+                        if pr in ex_var_list:
+                            index = ex_var_list.index(pr)
+                            item_id = id_list[index]
+                            item = CartItem.objects.get(id=item_id)
+                            item.quantity += 1
+                            item.user = user
+                            item.save()
+                        else:
+                            cart_item = CartItem.objects.filter(cart=cart)
+                            for item in cart_item:
+                                item.user = user
+                                item.save()
+            except Cart.DoesNotExist:
+                pass
             auth.login(request, user)
             messages.success(request, 'You are successfully logged in!')
-            return redirect('dashboard')
+            url = request.META.get('HTTP_REFERER')
+            # ? url => It will just grab the previous URL from where you came
+            try:
+                query = requests.utils.urlparse(url).query
+                # next=/cart/checkout/
+                params = dict(x.split('=') for x in query.split('&'))
+                if 'next' in params:
+                    nextPage = params['next']
+                    return redirect(nextPage)
+    # ? next :. In the context of Django's authentication system, 'next' is a commonly used query parameter to indicate the URL to which the user should be redirected after a successful login.
+            except:
+                return redirect('dashboard')
         else:
             messages.error(request, 'Invalid login credential')
 
